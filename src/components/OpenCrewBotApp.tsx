@@ -16,6 +16,7 @@ import { TaskDashboard } from "./TaskDashboard";
 import { WorkflowsPanel } from "./WorkflowsPanel";
 import { AuditPanel } from "./AuditPanel";
 import { ProjectMemoryPanel } from "./ProjectMemoryPanel";
+import { SkillsPanel } from "./SkillsPanel";
 
 /** Modal sheets. Editing an existing bot or room happens in the inspector instead. */
 export type Panel =
@@ -28,6 +29,7 @@ export type Panel =
   | { kind: "workflows" }
   | { kind: "audit" }
   | { kind: "project-memory" }
+  | { kind: "skills" }
   | null;
 
 /** Bots use details/memory/browser; rooms use members/settings. */
@@ -245,6 +247,7 @@ export function OpenCrewBotApp() {
       {panel?.kind === "workflows" && <WorkflowsPanel onClose={() => setPanel(null)} />}
       {panel?.kind === "audit" && <AuditPanel onClose={() => setPanel(null)} />}
       {panel?.kind === "project-memory" && <ProjectMemoryPanel onClose={() => setPanel(null)} />}
+      {panel?.kind === "skills" && <SkillsPanel onClose={() => setPanel(null)} />}
       {toastText && (
         <div
           role="status"

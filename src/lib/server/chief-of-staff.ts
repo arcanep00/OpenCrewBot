@@ -6,6 +6,7 @@ import { listBots, getBot, saveTask } from "./db";
 import { createTaskPlan, executePlan, getFullPlan } from "./task-engine";
 import { runTurn } from "./runtime";
 import { isMock } from "./config";
+import { listModels, mastraModel } from "./models";
 
 function botScore(bot: Bot, task: string): number {
   const profile = `${bot.title} ${bot.instructions} ${bot.description}`.toLowerCase();
@@ -20,6 +21,10 @@ function botScore(bot: Bot, task: string): number {
 function pickBot(bots: Bot[], task: string): Bot | null {
   if (!bots.length) return null;
   return bots.sort((a, b) => botScore(b, task) - botScore(a, task))[0];
+}
+
+function isComplexTask(description: string): boolean {
+  return /analy|research|compet|financ|model|review|comprehensive|detailed|multiple/i.test(description) || description.length > 200;
 }
 
 interface RawTask {
@@ -156,8 +161,34 @@ export async function orchestrate(
     if (!task.assignedBotId) return "No agent assigned.";
     const bot = await getBot(task.assignedBotId);
     if (!bot) return "Agent not found.";
-    const reply = await runTurn({ bot, conversationId, content: taskContext(task, currentPlan), route: { by: "lead" } });
-    return reply?.parts.filter((p) => p.kind === "text").map((p) => (p as { text: string }).text).join("\n") ?? "Done.";
+
+    const complex = isComplexTask(task.description);
+    let modelOverride: string | undefined;
+    if (!isMock()) {
+      const models = await listModels();
+      const provider = bot.model.startsWith("gpt-") || bot.model.startsWith("o") ? "openai"
+        : bot.model.startsWith("claude-") ? "anthropic" : "nebius";
+      const pool = models.filter((m) => m.tools && (provider === "nebius" ? !m.id.startsWith("gpt-") && !m.id.startsWith("claude-") : m.id.startsWith(provider === "openai" ? "gpt" : "claude")));
+      if (complex) {
+        const strong = pool.sort((a, b) => (b.inputPerM ?? 0) - (a.inputPerM ?? 0))[0];
+        if (strong) modelOverride = strong.id;
+      } else {
+        const fast = pool.sort((a, b) => (a.inputPerM ?? 999) - (b.inputPerM ?? 999))[0];
+        if (fast) modelOverride = fast.id;
+      }
+    }
+
+    const taskBot = modelOverride && modelOverride !== bot.model
+      ? { ...bot, model: modelOverride }
+      : bot;
+
+    try {
+      const reply = await runTurn({ bot: taskBot, conversationId, content: taskContext(task, currentPlan), route: { by: "lead" } });
+      return reply?.parts.filter((p) => p.kind === "text").map((p) => (p as { text: string }).text).join("\n") ?? "Done.";
+    } catch {
+      const reply = await runTurn({ bot, conversationId, content: taskContext(task, currentPlan), route: { by: "lead" } });
+      return reply?.parts.filter((p) => p.kind === "text").map((p) => (p as { text: string }).text).join("\n") ?? "Done.";
+    }
   });
 
   const finalPlan = (await getFullPlan(plan.id)) ?? plan;

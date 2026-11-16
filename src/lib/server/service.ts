@@ -13,6 +13,7 @@ import { forgetConversation, resetBot, runTurn, runningBots, stopConversation } 
 import { messagePreview } from "@/lib/shared/preview";
 import { roomConversationId, runRoom } from "./rooms";
 import { bootstrapScheduler } from "./scheduler";
+import { createWorkflow } from "./scheduler";
 
 export { InputError };
 
@@ -24,6 +25,7 @@ export function boot(): Promise<void> {
   g.__opencrewbotBoot ??= (async () => {
     await sweepInterrupted();
     await seed();
+    await seedMeetUniversity();
     await bootstrapScheduler();
   })();
   return g.__opencrewbotBoot;
@@ -97,6 +99,131 @@ async function seed() {
     pinned: true,
   });
   writeFileSync(SEED_MARKER, new Date().toISOString());
+}
+
+const MU_SEED_MARKER = join(DATA_DIR, ".seeded-meetuniversity");
+
+async function seedMeetUniversity() {
+  if (existsSync(MU_SEED_MARKER)) return;
+  const tools = { webSearch: true, memory: true, codeMode: true, browser: false, askUser: true };
+
+  const analyst = await createBot({
+    name: "Priya",
+    title: "Market Analyst",
+    description: "Researches competitors, market trends, and business opportunities for MeetUniversity.",
+    instructions:
+      "You specialise in EdTech market research. When researching competitors, search for their products, pricing, target students, and positioning. Build comparison tables. Focus on MeetUniversity's three product lines: Aspirations (career discovery), Study Abroad, and School Partnerships. Always cite sources.",
+    emoji: "📊",
+    color: "#6366f1",
+    model: DEFAULT_MODEL,
+    tools,
+    approval: "ask",
+    pinned: false,
+  });
+
+  const marketer = await createBot({
+    name: "Arjun",
+    title: "Marketing Strategist",
+    description: "Creates campaigns, content calendars, and messaging for MeetUniversity products.",
+    instructions:
+      "You specialise in marketing for EdTech targeting Indian students (Class 9–12). Create audience-first campaigns. For Aspirations, focus on career anxiety and discovery. For Study Abroad, focus on aspirations and practical steps. Write in a tone that resonates with teenagers and their parents. Output structured content plans.",
+    emoji: "📣",
+    color: "#f59e0b",
+    model: DEFAULT_MODEL,
+    tools: { ...tools, webSearch: true },
+    approval: "ask",
+    pinned: false,
+  });
+
+  const developer = await createBot({
+    name: "Dev",
+    title: "Technical Reviewer",
+    description: "Inspects GitHub repositories, identifies issues, and proposes improvements.",
+    instructions:
+      "You review code and repositories for quality, security, and architecture. When inspecting a repo, check: code structure, documentation, test coverage, security issues, performance bottlenecks, dependency health. Prioritise findings: Critical / Major / Minor. Always ask for approval before suggesting any changes are made.",
+    emoji: "⚙️",
+    color: "#10b981",
+    model: DEFAULT_MODEL,
+    tools: { ...tools, codeMode: true },
+    approval: "ask",
+    pinned: false,
+  });
+
+  const dataBot = await createBot({
+    name: "Sage",
+    title: "Data Analyst",
+    description: "Analyses sales data, identifies conversion bottlenecks, and produces business insights.",
+    instructions:
+      "You analyse business data for MeetUniversity. Focus on conversion funnels, segment performance, and revenue opportunities. When given data, calculate key metrics, identify patterns, and produce actionable recommendations. Use code mode for calculations. Present results in tables with clear business implications.",
+    emoji: "🔢",
+    color: "#ec4899",
+    model: DEFAULT_MODEL,
+    tools: { ...tools, codeMode: true },
+    approval: "ask",
+    pinned: false,
+  });
+
+  const marketIntelRoom = await createRoom({
+    name: "Market Intelligence",
+    topic: "Competitive research and market opportunities for MeetUniversity",
+    emoji: "🔍",
+    memberIds: [analyst.id, marketer.id],
+    leadId: analyst.id,
+    responder: "auto",
+    pinned: false,
+  });
+
+  const campaignRoom = await createRoom({
+    name: "Campaign Studio",
+    topic: "Marketing campaigns for Aspirations — Class 11 students",
+    emoji: "🎯",
+    memberIds: [marketer.id, analyst.id],
+    leadId: marketer.id,
+    responder: "auto",
+    pinned: false,
+  });
+
+  const devRoom = await createRoom({
+    name: "Dev Review",
+    topic: "Technical inspection and improvement planning",
+    emoji: "🛠️",
+    memberIds: [developer.id, dataBot.id],
+    leadId: developer.id,
+    responder: "lead",
+    pinned: false,
+  });
+
+  const analyticsRoom = await createRoom({
+    name: "Analytics",
+    topic: "Sales data analysis and business recommendations",
+    emoji: "📈",
+    memberIds: [dataBot.id, analyst.id],
+    leadId: dataBot.id,
+    responder: "auto",
+    pinned: false,
+  });
+
+  await createWorkflow({
+    name: "Weekly Competitor Monitor",
+    description: "Monitors MeetUniversity competitors every week and produces a summary report.",
+    roomId: marketIntelRoom.id,
+    botId: analyst.id,
+    instruction:
+      "Research the latest updates from MeetUniversity's competitors: iDreamCareer, Leverage Edu, Collegedunia, Shiksha, and Buddy4Study. Look for new products, pricing changes, partnerships, and marketing campaigns. Produce a structured weekly briefing with key changes and strategic implications for MeetUniversity.",
+    frequency: "weekly",
+  });
+
+  await createWorkflow({
+    name: "Daily Market Summary",
+    description: "Daily summary of EdTech market news relevant to MeetUniversity.",
+    roomId: null,
+    botId: analyst.id,
+    instruction:
+      "Search for today's EdTech news in India. Focus on university admissions, career guidance, study abroad, and school partnership trends. Summarise the top 5 developments and their relevance to MeetUniversity.",
+    frequency: "daily",
+  });
+
+  writeFileSync(MU_SEED_MARKER, new Date().toISOString());
 }
 
 // ── bots ────────────────────────────────────────────────────────────────

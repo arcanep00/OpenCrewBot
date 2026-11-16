@@ -179,41 +179,50 @@ function SidebarFooter() {
   const missing = status ? Object.values(status.keys).filter((on) => !on).length : 0;
   const settingsHint = status?.mock ? "Settings · mock mode until NEBIUS_API_KEY is set" : missing ? `Settings · ${missing} key${missing === 1 ? "" : "s"} not set` : "Settings";
   return (
-    <div className="flex items-center gap-1 border-t border-line px-3 py-3">
-      <a
-        href="https://tokenfactory.nebius.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex h-10 min-w-0 shrink items-center gap-2 rounded-xl px-3 ring-1 ring-line transition-colors hover:bg-hover hover:ring-line-strong"
-        title="Models by Nebius Token Factory"
-      >
-        <span className="shrink-0 text-[10px] font-semibold tracking-[0.08em] text-faint uppercase">Powered by</span>
-        <NebiusLogo height={14} className="shrink-0" />
-      </a>
-      <IconButton label="Connections" onClick={() => setPanel({ kind: "connections" })} className="ml-auto">
-        <Plug size={18} />
-      </IconButton>
-      <IconButton label="Task Dashboard" onClick={() => setPanel({ kind: "tasks" })}>
-        <LayoutList size={18} />
-      </IconButton>
-      <IconButton label="Workflows" onClick={() => setPanel({ kind: "workflows" })}>
-        <CalendarClock size={18} />
-      </IconButton>
-      <IconButton label="Project Memory" onClick={() => setPanel({ kind: "project-memory" })}>
-        <Database size={18} />
-      </IconButton>
-      <IconButton label="Skills" onClick={() => setPanel({ kind: "skills" })}>
-        <Sparkles size={18} />
-      </IconButton>
-      <IconButton label="Audit Log" onClick={() => setPanel({ kind: "audit" })}>
-        <ShieldCheck size={18} />
-      </IconButton>
-      <IconButton label={settingsHint} onClick={() => setPanel({ kind: "settings" })} className="relative">
-        <Settings size={18} />
-        {status && (status.mock || missing > 0) && (
-          <span className={clsx("absolute top-1.5 right-1.5 h-2 w-2 rounded-full ring-2 ring-side", status.mock ? "bg-warn" : "bg-faint")} />
-        )}
-      </IconButton>
+    <div className="flex flex-col gap-1 border-t border-line px-3 py-3">
+      <div className="flex items-center gap-1">
+        <a
+          href="https://tokenfactory.nebius.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex h-9 min-w-0 shrink items-center gap-2 rounded-xl px-2.5 ring-1 ring-line transition-colors hover:bg-hover hover:ring-line-strong"
+          title="Models by Nebius Token Factory"
+        >
+          <span className="shrink-0 text-[9px] font-semibold tracking-[0.08em] text-faint uppercase">Powered by</span>
+          <NebiusLogo height={12} className="shrink-0" />
+        </a>
+        <IconButton label="Connections" onClick={() => setPanel({ kind: "connections" })} className="ml-auto">
+          <Plug size={17} />
+        </IconButton>
+        <IconButton label={settingsHint} onClick={() => setPanel({ kind: "settings" })} className="relative">
+          <Settings size={17} />
+          {status && (status.mock || missing > 0) && (
+            <span className={clsx("absolute top-1.5 right-1.5 h-2 w-2 rounded-full ring-2 ring-side", status.mock ? "bg-warn" : "bg-faint")} />
+          )}
+        </IconButton>
+      </div>
+      <div className="flex items-center gap-1">
+        <button onClick={() => setPanel({ kind: "tasks" })} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] text-muted hover:bg-raised hover:text-ink transition-colors" title="Task Dashboard">
+          <LayoutList size={14} />
+          <span>Tasks</span>
+        </button>
+        <button onClick={() => setPanel({ kind: "workflows" })} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] text-muted hover:bg-raised hover:text-ink transition-colors" title="Workflows">
+          <CalendarClock size={14} />
+          <span>Workflows</span>
+        </button>
+        <button onClick={() => setPanel({ kind: "project-memory" })} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] text-muted hover:bg-raised hover:text-ink transition-colors" title="Project Memory">
+          <Database size={14} />
+          <span>Memory</span>
+        </button>
+        <button onClick={() => setPanel({ kind: "skills" })} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] text-muted hover:bg-raised hover:text-ink transition-colors" title="Skills">
+          <Sparkles size={14} />
+          <span>Skills</span>
+        </button>
+        <button onClick={() => setPanel({ kind: "audit" })} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] text-muted hover:bg-raised hover:text-ink transition-colors" title="Audit Log">
+          <ShieldCheck size={14} />
+          <span>Audit</span>
+        </button>
+      </div>
     </div>
   );
 }

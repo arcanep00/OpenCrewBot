@@ -1,7 +1,6 @@
-// GET /api/tasks/[id] — get one plan with all tasks
 import { handle } from "@/lib/server/http";
 import { getFullPlan } from "@/lib/server/task-engine";
-import { InputError } from "@/lib/server/service";
+import { InputError } from "@/lib/server/errors";
 
 type Ctx = { params: Promise<{ id: string }> };
 

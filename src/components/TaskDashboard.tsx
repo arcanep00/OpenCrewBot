@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { api } from "@/lib/client/api";
 import type { TaskPlan, Task } from "@/lib/shared/types";
 
 const STATUS_ICON: Record<string, string> = {
@@ -27,9 +28,8 @@ export function TaskDashboard({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/tasks");
-    if (res.ok) {
-      const data = (await res.json()) as { plans: TaskPlan[] };
+    const data = await api.tasks().catch(() => null);
+    if (data) {
       setPlans(data.plans);
       if (selected) {
         const updated = data.plans.find((p) => p.id === selected.id);
@@ -46,11 +46,7 @@ export function TaskDashboard({ onClose }: { onClose: () => void }) {
   }, [load]);
 
   async function handleApprove(planId: string, taskId: string, approve: boolean) {
-    await fetch(`/api/tasks/${planId}/approve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ taskId, approve }),
-    });
+    await api.approveTask(planId, taskId, approve).catch(() => null);
     await load();
   }
 

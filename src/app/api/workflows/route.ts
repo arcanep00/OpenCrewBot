@@ -1,10 +1,8 @@
-// GET  /api/workflows — list all workflows
-// POST /api/workflows — create a workflow
 import { handle, body } from "@/lib/server/http";
 import { listWorkflows } from "@/lib/server/db";
 import { createWorkflow } from "@/lib/server/scheduler";
+import { InputError } from "@/lib/server/errors";
 import type { ScheduleFrequency } from "@/lib/shared/types";
-import { InputError } from "@/lib/server/service";
 
 export async function GET() {
   return handle(async () => {

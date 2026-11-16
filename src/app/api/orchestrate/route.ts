@@ -1,8 +1,6 @@
-// POST /api/orchestrate  { conversationId, instruction, botIds? }
-// Chief of Staff endpoint: break down a complex instruction and run it.
 import { handle, body } from "@/lib/server/http";
 import { orchestrate } from "@/lib/server/chief-of-staff";
-import { InputError } from "@/lib/server/service";
+import { InputError } from "@/lib/server/errors";
 
 export async function POST(request: Request) {
   return handle(async () => {

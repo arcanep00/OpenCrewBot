@@ -1,8 +1,6 @@
-// PATCH  /api/workflows/[id] — update a workflow
-// DELETE /api/workflows/[id] — delete a workflow
 import { handle, body } from "@/lib/server/http";
 import { updateWorkflow, deleteWorkflow } from "@/lib/server/scheduler";
-import { InputError } from "@/lib/server/service";
+import { InputError } from "@/lib/server/errors";
 
 type Ctx = { params: Promise<{ id: string }> };
 

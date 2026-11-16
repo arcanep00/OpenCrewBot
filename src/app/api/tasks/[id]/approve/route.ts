@@ -1,8 +1,7 @@
-// POST /api/tasks/[id]/approve  { taskId, approve: boolean }
 import { handle, body } from "@/lib/server/http";
 import { approveTask, rejectTask } from "@/lib/server/task-engine";
 import { appendAuditEntry } from "@/lib/server/db";
-import { InputError } from "@/lib/server/service";
+import { InputError } from "@/lib/server/errors";
 
 type Ctx = { params: Promise<{ id: string }> };
 

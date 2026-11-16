@@ -2,7 +2,7 @@
 // the right bots by capability, runs independent tasks in parallel, and
 // consolidates the results into a single deliverable.
 import type { Bot, Task, TaskPlan, ConversationId } from "@/lib/shared/types";
-import { listBots, getBot } from "./db";
+import { listBots, getBot, saveTask } from "./db";
 import { createTaskPlan, executePlan, getFullPlan } from "./task-engine";
 import { runTurn } from "./runtime";
 import { isMock } from "./config";
@@ -148,7 +148,7 @@ export async function orchestrate(
     const deps = (rawTasks[i]?.dependsOnTitles ?? []).map((d) => titleToId.get(d)).filter(Boolean) as string[];
     if (deps.length) {
       plan.tasks[i] = { ...plan.tasks[i], dependsOn: deps };
-      await (await import("./db")).saveTask(plan.tasks[i]);
+      await saveTask(plan.tasks[i]);
     }
   }
 

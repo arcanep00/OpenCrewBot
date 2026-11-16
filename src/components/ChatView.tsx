@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { ArrowLeft, ArrowUp, AtSign, Eraser, MonitorPlay, MoreHorizontal, NotebookPen, PanelLeft, PanelRight, Plus, Square } from "lucide-react";
+import { ArrowLeft, ArrowUp, AtSign, BrainCircuit, Eraser, MonitorPlay, MoreHorizontal, NotebookPen, PanelLeft, PanelRight, Plus, Square } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/client/api";
 import type { Bot, ChatMessage, Room } from "@/lib/shared/types";
@@ -155,9 +155,10 @@ function Composer({
   running: boolean;
   prefill?: string;
 }) {
-  const { toast } = useApp();
+  const { toast, setPanel } = useApp();
   const [text, setText] = useState(() => prefill ?? readDraft(conversationId));
   const [sending, setSending] = useState(false);
+  const [orchestrating, setOrchestrating] = useState(false);
   const [mention, setMention] = useState<{ query: string; start: number } | null>(null);
   const [highlight, setHighlight] = useState(0);
   const [plusMenu, setPlusMenu] = useState(false);
@@ -220,6 +221,22 @@ function Composer({
     });
   };
 
+  const orchestrate = async () => {
+    const instruction = text.trim();
+    if (!instruction || orchestrating) return;
+    setOrchestrating(true);
+    try {
+      await api.orchestrate(conversationId, instruction);
+      setText("");
+      setPanel({ kind: "tasks" });
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Couldn't start orchestration.");
+    } finally {
+      setOrchestrating(false);
+      ref.current?.focus();
+    }
+  };
+
   const send = async () => {
     const value = text.trim();
     if (!value || sending) return;
@@ -276,6 +293,7 @@ function Composer({
                 onClose={() => setPlusMenu(false)}
                 items={[
                   ...(members.length ? [{ label: "Mention a bot", icon: <AtSign size={15} />, onClick: startMention }] : []),
+                  ...(members.length ? [{ label: "Orchestrate with this team", icon: <BrainCircuit size={15} />, onClick: () => { setPlusMenu(false); void orchestrate(); } }] : []),
                   { label: "Clear chat", icon: <Eraser size={15} />, onClick: clear, danger: true },
                 ]}
               />
@@ -329,6 +347,7 @@ function Composer({
           </IconButton>
         </div>
         {running && <p className="mt-2 text-center text-[12px] text-faint">Messages you send now wait until this reply finishes.</p>}
+        {orchestrating && <p className="mt-2 text-center text-[12px] text-faint">Planning tasks… the dashboard will open when ready.</p>}
       </div>
     </div>
   );

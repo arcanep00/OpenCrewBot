@@ -11,6 +11,7 @@ import type {
   ModelOption,
   Room,
   RoomInput,
+  TaskPlan,
 } from "@/lib/shared/types";
 
 async function call<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
@@ -65,4 +66,10 @@ export const api = {
     call<{ server: McpServer }>("/api/connections/mcp", { method: "POST", json: input }),
   removeMcpServer: (id: string) => call(`/api/connections/mcp/${id}`, { method: "DELETE" }),
   testMcpServer: (id: string) => call<{ tools: number }>(`/api/connections/mcp/${id}/test`, { method: "POST" }),
+  orchestrate: (conversationId: ConversationId, instruction: string, botIds?: string[]) =>
+    call<{ plan: TaskPlan; summary: string }>("/api/orchestrate", { method: "POST", json: { conversationId, instruction, botIds } }),
+  tasks: (conversationId?: ConversationId) =>
+    call<{ plans: TaskPlan[] }>(`/api/tasks${conversationId ? `?conversationId=${encodeURIComponent(conversationId)}` : ""}`),
+  approveTask: (planId: string, taskId: string, approve: boolean) =>
+    call("/api/tasks/" + planId + "/approve", { method: "POST", json: { taskId, approve } }),
 };

@@ -5,10 +5,15 @@ import { isMock } from "@/lib/server/config";
 import { DEFAULT_MODEL } from "@/lib/server/models";
 import { runTurn } from "@/lib/server/runtime";
 import { listBots } from "@/lib/server/db";
+import type { ApprovalMode } from "@/lib/shared/types";
 
 export async function POST(request: Request) {
   return handle(async () => {
-    const { description } = await body<{ description: string }>(request);
+    const { description, approval, tools } = await body<{
+      description: string;
+      approval?: ApprovalMode;
+      tools?: { webSearch?: boolean; codeMode?: boolean };
+    }>(request);
     if (!description?.trim()) throw new InputError("description is required.");
 
     let name = "";
@@ -21,7 +26,6 @@ export async function POST(request: Request) {
       name = words.slice(0, 2).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ").slice(0, 20);
       title = words.slice(2, 4).join(" ") || "Assistant";
       instructions = description;
-      emoji = "🤖";
     } else {
       const bots = await listBots();
       const planner = bots[0];
@@ -65,8 +69,14 @@ export async function POST(request: Request) {
       emoji,
       color: ["#3b82f6", "#f59e0b", "#ec4899", "#22c55e", "#8b5cf6"][Math.floor(Math.random() * 5)],
       model: DEFAULT_MODEL,
-      tools: { webSearch: true, memory: true, codeMode: false, browser: false, askUser: true },
-      approval: "ask",
+      tools: {
+        webSearch: tools?.webSearch ?? true,
+        memory: true,
+        codeMode: tools?.codeMode ?? false,
+        browser: false,
+        askUser: true,
+      },
+      approval: approval ?? "ask",
       pinned: false,
     });
 

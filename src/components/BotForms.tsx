@@ -229,13 +229,16 @@ export function NewBotDrawer({ onClose }: { onClose: () => void }) {
 export function CreateAgentDrawer({ onClose }: { onClose: () => void }) {
   const { open, toast } = useApp();
   const [description, setDescription] = useState("");
+  const [approval, setApproval] = useState<"ask" | "controlled" | "full">("ask");
+  const [webSearch, setWebSearch] = useState(true);
+  const [codeMode, setCodeMode] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const create = async () => {
     if (!description.trim() || creating) return;
     setCreating(true);
     try {
-      const { bot } = await api.createAgent(description);
+      const { bot } = await api.createAgent(description, { approval, tools: { webSearch, codeMode } });
       open(`dm:${bot.id}`);
       onClose();
     } catch (error) {
@@ -260,6 +263,24 @@ export function CreateAgentDrawer({ onClose }: { onClose: () => void }) {
             autoFocus
           />
         </Field>
+        <Field label="Permission level">
+          <Segmented
+            value={approval}
+            onChange={(v) => setApproval(v as typeof approval)}
+            options={[
+              { value: "ask", label: "Ask first", hint: "Asks before external actions." },
+              { value: "controlled", label: "Controlled", hint: "Pre-approved actions only." },
+              { value: "full", label: "Full access", hint: "Acts without asking." },
+            ]}
+          />
+        </Field>
+        <div>
+          <span className="mb-1.5 block text-[12.5px] font-medium text-mute">Tools</span>
+          <div className="divide-y divide-line rounded-2xl bg-raised px-4">
+            <Toggle label="Web search" hint="Lets the agent search and read pages." checked={webSearch} onChange={setWebSearch} />
+            <Toggle label="Code mode" hint="Lets the agent run multi-step TypeScript." checked={codeMode} onChange={setCodeMode} />
+          </div>
+        </div>
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="primary" onClick={create} disabled={!description.trim() || creating}>

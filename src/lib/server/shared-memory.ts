@@ -31,9 +31,10 @@ export async function writeSharedMemory(scope: string, content: string): Promise
   publish({ type: "memory-changed", botId: scope });
 }
 
-export async function appendSharedMemory(scope: string, note: string, section?: string): Promise<void> {
+export async function appendSharedMemory(scope: string, note: string, section?: string, source?: string): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
-  const line = `- ${note.trim().replace(/\n+/g, " ")} _(${today})_`;
+  const attribution = source ? ` _(${today}, via ${source})_` : ` _(${today})_`;
+  const line = `- ${note.trim().replace(/\n+/g, " ")}${attribution}`;
   let content = (await readSharedMemory(scope)).trimEnd();
 
   if (section) {

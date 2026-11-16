@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { CalendarClock, LayoutList, MoreHorizontal, PanelLeft, Pin, Plug, Plus, Search, Settings, ShieldCheck, X } from "lucide-react";
+import { CalendarClock, Database, LayoutList, MoreHorizontal, PanelLeft, Pin, Plug, Plus, Search, Settings, ShieldCheck, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/client/api";
 import { timeLabel } from "@/lib/client/format";
@@ -198,6 +198,9 @@ function SidebarFooter() {
       </IconButton>
       <IconButton label="Workflows" onClick={() => setPanel({ kind: "workflows" })}>
         <CalendarClock size={18} />
+      </IconButton>
+      <IconButton label="Project Memory" onClick={() => setPanel({ kind: "project-memory" })}>
+        <Database size={18} />
       </IconButton>
       <IconButton label="Audit Log" onClick={() => setPanel({ kind: "audit" })}>
         <ShieldCheck size={18} />

@@ -7,17 +7,15 @@ export const DEFAULT_MODEL = "MiniMaxAI/MiniMax-M3";
 
 export type ModelProvider = "nebius" | "openai" | "anthropic";
 
-/** Returns which provider to use for a given model id. */
 export function providerForModel(modelId: string): ModelProvider {
-  if (modelId.startsWith("gpt-") || modelId.startsWith("o1") || modelId.startsWith("o3") || modelId.startsWith("o4") || modelId === "openai/gpt-oss-120b") return "openai";
+  if (modelId.startsWith("gpt-") || modelId.startsWith("o1") || modelId.startsWith("o3") || modelId.startsWith("o4") || modelId === "openai/gpt-oss-120b" || modelId.startsWith("local/")) return "openai";
   if (modelId.startsWith("claude-")) return "anthropic";
   return "nebius";
 }
 
-/** Mastra model string for a given model id — includes provider prefix. */
 export function mastraModel(modelId: string): string {
   const provider = providerForModel(modelId);
-  if (provider === "openai") return `openai/${modelId}`;
+  if (provider === "openai") return `openai/${modelId.replace("local/", "")}`;
   if (provider === "anthropic") return `anthropic/${modelId}`;
   return `nebius/${modelId}`;
 }
@@ -50,6 +48,7 @@ const OPENAI_MODELS: Row[] = [
   ["gpt-4o-mini", 128000, true, false, true, 0.15, 0.6],
   ["o3-mini", 200000, true, true, false, 1.1, 4.4],
   ["o4-mini", 200000, true, true, false, 1.1, 4.4],
+  ["local/nemotron-3-nano-4b", 128000, true, true, false, 0, 0],
 ];
 
 const ANTHROPIC_MODELS: Row[] = [

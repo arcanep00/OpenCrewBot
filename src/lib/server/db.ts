@@ -2,7 +2,7 @@
 // its own store (mastra.db) for each bot's model-facing thread history.
 import { createClient, type Client } from "@libsql/client";
 import { APP_DB_URL } from "./config";
-import type { Bot, ChatMessage, ConversationId, Room } from "@/lib/shared/types";
+import type { Bot, ChatMessage, ConversationId, Room, Task, TaskPlan, ScheduledWorkflow, WorkflowRun, AuditEntry } from "@/lib/shared/types";
 
 // Cached across hot reloads, together with the file it points at, so a
 // changed database path opens a fresh connection instead of reusing one
@@ -238,10 +238,6 @@ export async function bumpGeneration(conversationId: ConversationId): Promise<nu
   return conversationGeneration(conversationId);
 }
 
-import type { Task, TaskPlan, ScheduledWorkflow, WorkflowRun, AuditEntry, AuditAction } from "@/lib/shared/types";
-
-// ── task plans (Module D) ────────────────────────────────────────────────
-
 export async function saveTaskPlan(plan: TaskPlan): Promise<void> {
   await (await db()).execute({
     sql: `INSERT INTO task_plans (id, conversation_id, data, created_at) VALUES (?, ?, ?, ?)
@@ -281,8 +277,6 @@ export async function listTasksForPlan(planId: string): Promise<Task[]> {
   return rows.rows.map((r) => JSON.parse(String(r.data)) as Task);
 }
 
-// ── workflows (Module I) ─────────────────────────────────────────────────
-
 export async function saveWorkflow(wf: ScheduledWorkflow): Promise<void> {
   await (await db()).execute({
     sql: `INSERT INTO workflows (id, data, created_at) VALUES (?, ?, ?)
@@ -321,8 +315,6 @@ export async function listWorkflowRuns(workflowId: string, limit = 20): Promise<
   return rows.rows.map((r) => JSON.parse(String(r.data)) as WorkflowRun);
 }
 
-// ── audit log (Module G) ─────────────────────────────────────────────────
-
 export async function appendAuditEntry(entry: Omit<AuditEntry, "id" | "createdAt">): Promise<AuditEntry> {
   const full: AuditEntry = { ...entry, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
   await (await db()).execute({
@@ -340,9 +332,6 @@ export async function listAuditLog(limit = 100): Promise<AuditEntry[]> {
   return rows.rows.map((r) => JSON.parse(String(r.data)) as AuditEntry);
 }
 
-// ── shared memory (Module E) ─────────────────────────────────────────────
-
-/** scope: `room:<roomId>` or `project:<name>` */
 export async function getSharedMemory(scope: string): Promise<string> {
   const rows = await (await db()).execute({ sql: "SELECT data FROM shared_memory WHERE id = ?", args: [scope] });
   return rows.rows[0] ? (JSON.parse(String(rows.rows[0].data)) as { content: string }).content : "";

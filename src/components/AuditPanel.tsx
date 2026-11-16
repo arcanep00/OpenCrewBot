@@ -1,6 +1,6 @@
 "use client";
+"use client";
 
-// Audit Log Panel — Module G UI
 import { useEffect, useState, useCallback } from "react";
 import type { AuditEntry } from "@/lib/shared/types";
 

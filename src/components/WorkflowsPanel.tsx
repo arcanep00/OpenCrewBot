@@ -1,6 +1,6 @@
 "use client";
+"use client";
 
-// Scheduled Workflows Panel — Module I UI
 import { useEffect, useState, useCallback } from "react";
 import type { ScheduledWorkflow, WorkflowRun, ScheduleFrequency } from "@/lib/shared/types";
 

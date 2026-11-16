@@ -170,7 +170,7 @@ export interface ConnectionOption {
   logo?: string;
 }
 
-// ── Task Execution Engine (Module D) ────────────────────────────────────
+export type ApprovalMode = "ask" | "controlled" | "full";
 
 export type TaskStatus = "pending" | "running" | "done" | "error" | "cancelled" | "awaiting-approval";
 
@@ -201,8 +201,6 @@ export interface TaskPlan {
   completedAt: string | null;
 }
 
-// ── Scheduled Workflows (Module I) ──────────────────────────────────────
-
 export type ScheduleFrequency = "manual" | "hourly" | "daily" | "weekly";
 
 export interface ScheduledWorkflow {
@@ -213,7 +211,6 @@ export interface ScheduledWorkflow {
   botId: string | null;
   instruction: string;
   frequency: ScheduleFrequency;
-  cronExpression: string | null;
   enabled: boolean;
   lastRunAt: string | null;
   nextRunAt: string | null;
@@ -230,8 +227,6 @@ export interface WorkflowRun {
   error: string | null;
 }
 
-// ── Audit Log (Module G) ─────────────────────────────────────────────────
-
 export type AuditAction = "tool-approved" | "tool-denied" | "agent-created" | "agent-deleted" | "workflow-triggered" | "memory-edited";
 
 export interface AuditEntry {
@@ -242,8 +237,6 @@ export interface AuditEntry {
   detail: string;
   createdAt: string;
 }
-
-// ── Skills (Module F) ─────────────────────────────────────────────────────
 
 export type SkillId =
   | "market-research"
@@ -262,15 +255,3 @@ export interface Skill {
   instructions: string;
   requiredTools: (keyof BotTools)[];
 }
-
-// ── Extended ServerEvents ────────────────────────────────────────────────
-
-export type ServerEvent2 =
-  | { type: "task-plan"; plan: TaskPlan }
-  | { type: "task-update"; planId: string; task: Task }
-  | { type: "workflow-run"; run: WorkflowRun };
-
-// ── Extended ApprovalMode ─────────────────────────────────────────────────
-
-/** ask = Ask First, controlled = Controlled Access, full = Full Access */
-export type ApprovalMode = "ask" | "controlled" | "full";

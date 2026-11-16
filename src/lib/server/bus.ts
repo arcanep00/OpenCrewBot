@@ -1,7 +1,6 @@
 // In-process fan-out of server events to every open SSE connection.
 import type { ServerEvent, TaskPlan, Task, WorkflowRun } from "@/lib/shared/types";
 
-// Extended internal events (not all sent over SSE, some are internal signals)
 export type InternalEvent =
   | ServerEvent
   | { type: "task-plan-created"; plan: TaskPlan }
@@ -19,7 +18,7 @@ export function publish(event: InternalEvent): void {
     try {
       listener(event);
     } catch {
-      // A broken connection must not stop delivery to the others.
+      // ignored
     }
   }
 }

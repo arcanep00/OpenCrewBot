@@ -98,15 +98,10 @@ async function buildRuntime(bot: Bot): Promise<BotRuntime> {
   const builtIn = buildTools(bot);
   const connectors = await buildConnectorTools(bot, `bot-${bot.id}-${Date.now()}`);
   const capabilities = [...builtIn.capabilities, ...connectors.capabilities];
-  const { selectSkillsForTask, skillsPromptSection } = await import("./skills");
   const agent = new Agent({
     id: `bot-${bot.id}`,
     name: bot.name,
-    instructions: () => {
-      const skills = selectSkillsForTask(holder.bot.instructions, 2);
-      const activeSkills = skillsPromptSection(skills);
-      return systemPrompt(holder.bot, capabilities, builtIn.instructions, activeSkills);
-    },
+    instructions: () => systemPrompt(holder.bot, capabilities, builtIn.instructions),
     model: isMock() ? createMockModel(bot.name) : () => `nebius/${holder.bot.model}`,
     tools: { ...connectors.tools, ...builtIn.tools },
     memory,

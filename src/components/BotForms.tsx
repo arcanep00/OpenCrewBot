@@ -226,6 +226,51 @@ export function NewBotDrawer({ onClose }: { onClose: () => void }) {
   );
 }
 
+export function CreateAgentDrawer({ onClose }: { onClose: () => void }) {
+  const { open, toast } = useApp();
+  const [description, setDescription] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const create = async () => {
+    if (!description.trim() || creating) return;
+    setCreating(true);
+    try {
+      const { bot } = await api.createAgent(description);
+      open(`dm:${bot.id}`);
+      onClose();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Couldn't create agent.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <Drawer title="Create agent from description" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-[13.5px] leading-relaxed text-mute">
+          Describe what you want this agent to do. It will be created with the right name, role, and instructions automatically.
+        </p>
+        <Field label="Description">
+          <textarea
+            className={clsx(inputClass, "min-h-28 resize-y leading-relaxed")}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="A financial analyst who reviews spreadsheets, models revenue projections, and identifies growth opportunities for EdTech companies."
+            autoFocus
+          />
+        </Field>
+        <div className="flex justify-end gap-2 border-t border-line pt-4">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={create} disabled={!description.trim() || creating}>
+            {creating ? "Creating…" : "Create agent"}
+          </Button>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
 /** The bot's MEMORY.md, editable, refreshed live when the bot writes to it. */
 export function MemoryEditor({ bot }: { bot: Bot }) {
   const { state, toast } = useApp();

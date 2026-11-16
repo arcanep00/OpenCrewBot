@@ -8,7 +8,7 @@ import type { ConversationId, ServerEvent } from "@/lib/shared/types";
 import { Sidebar } from "./Sidebar";
 import { ChatView } from "./ChatView";
 import { Inspector } from "./Inspector";
-import { NewBotDrawer } from "./BotForms";
+import { NewBotDrawer, CreateAgentDrawer } from "./BotForms";
 import { NewRoomDrawer } from "./RoomForms";
 import { SettingsPanel } from "./SettingsPanel";
 import { ConnectionsPanel } from "./ConnectionsPanel";
@@ -20,6 +20,7 @@ import { AuditPanel } from "./AuditPanel";
 export type Panel =
   | { kind: "new-bot" }
   | { kind: "new-room" }
+  | { kind: "create-agent" }
   | { kind: "settings" }
   | { kind: "connections" }
   | { kind: "tasks" }
@@ -234,6 +235,7 @@ export function OpenCrewBotApp() {
         )}
       </div>
       {panel?.kind === "new-bot" && <NewBotDrawer onClose={() => setPanel(null)} />}
+      {panel?.kind === "create-agent" && <CreateAgentDrawer onClose={() => setPanel(null)} />}
       {panel?.kind === "new-room" && <NewRoomDrawer onClose={() => setPanel(null)} />}
       {panel?.kind === "settings" && <SettingsPanel onClose={() => setPanel(null)} />}
       {panel?.kind === "connections" && <ConnectionsPanel onClose={() => setPanel(null)} />}

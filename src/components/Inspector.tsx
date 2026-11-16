@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink, Pencil, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/client/api";
 import type { Bot, Room } from "@/lib/shared/types";
 import { BotForm, MemoryEditor } from "./BotForms";
@@ -10,6 +10,64 @@ import { RoomForm } from "./RoomForms";
 import { useApp, type InspectorTab } from "./OpenCrewBotApp";
 import { BotAvatar, Button, IconButton, Mascot, RoomAvatar, Tabs, Toggle } from "./ui";
 import { useConnections } from "@/lib/client/use-connections";
+
+function RoomMemoryEditor({ roomId }: { roomId: string }) {
+  const { toast } = useApp();
+  const [content, setContent] = useState<string | null>(null);
+  const [saved, setSaved] = useState("");
+  const [saving, setSaving] = useState(false);
+  const dirty = content !== null && content !== saved;
+  const scope = `room:${roomId}`;
+
+  useEffect(() => {
+    fetch(`/api/shared-memory?scope=${encodeURIComponent(scope)}`)
+      .then((r) => r.json())
+      .then((d: { content: string }) => { setSaved(d.content); setContent(d.content); })
+      .catch(() => { setSaved(""); setContent(""); });
+  }, [scope]);
+
+  const save = async () => {
+    if (content === null) return;
+    setSaving(true);
+    try {
+      await fetch("/api/shared-memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope, content }),
+      });
+      setSaved(content);
+      toast("Room memory saved.");
+    } catch {
+      toast("Couldn't save room memory.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-center text-[13px] leading-relaxed text-mute">
+        Shared notes all bots in this room can read. Bots can reference this between sessions.
+      </p>
+      <textarea
+        value={content ?? ""}
+        onChange={(e) => setContent(e.target.value)}
+        disabled={content === null}
+        spellCheck={false}
+        aria-label="Room memory"
+        className="h-[40vh] min-h-[200px] resize-y rounded-2xl border border-line bg-raised p-4 font-mono text-[12.5px] leading-relaxed focus:outline-none focus:ring-1 focus:ring-line-strong"
+      />
+      <div className="flex justify-end gap-2">
+        {dirty && (
+          <Button size="sm" variant="ghost" onClick={() => setContent(saved)}>Revert</Button>
+        )}
+        <Button size="sm" variant="primary" disabled={!dirty || saving} onClick={save}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function BrowserView({ bot }: { bot: Bot }) {
   const { state, toast } = useApp();
@@ -242,7 +300,7 @@ function RoomInspector({ room, tab, setTab }: { room: Room; tab: InspectorTab; s
   const { state, open } = useApp();
   const members = room.memberIds.map((id) => state.bots.find((b) => b.id === id)).filter((b): b is Bot => Boolean(b));
   const running = state.summaries[`room:${room.id}`]?.running ?? [];
-  const current = tab === "settings" ? "settings" : "members";
+  const current = tab === "settings" ? "settings" : tab === "memory" ? "memory" : "members";
   return (
     <>
       <div className="flex flex-col items-center px-6 pt-2 pb-5 text-center">
@@ -255,6 +313,7 @@ function RoomInspector({ room, tab, setTab }: { room: Room; tab: InspectorTab; s
             onChange={setTab}
             tabs={[
               { value: "members", label: "Members" },
+              { value: "memory", label: "Memory" },
               { value: "settings", label: "Settings" },
             ]}
           />
@@ -284,6 +343,7 @@ function RoomInspector({ room, tab, setTab }: { room: Room; tab: InspectorTab; s
             {members.length === 0 && <p className="px-3 py-6 text-center text-sm text-mute">No members yet. Add some in Settings.</p>}
           </ul>
         )}
+        {current === "memory" && <RoomMemoryEditor roomId={room.id} />}
         {current === "settings" && <RoomForm key={JSON.stringify(room)} room={room} />}
       </div>
     </>

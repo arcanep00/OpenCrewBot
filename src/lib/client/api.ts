@@ -72,4 +72,6 @@ export const api = {
     call<{ plans: TaskPlan[] }>(`/api/tasks${conversationId ? `?conversationId=${encodeURIComponent(conversationId)}` : ""}`),
   approveTask: (planId: string, taskId: string, approve: boolean) =>
     call("/api/tasks/" + planId + "/approve", { method: "POST", json: { taskId, approve } }),
+  createAgent: (description: string) =>
+    call<{ bot: Bot }>("/api/agents", { method: "POST", json: { description } }),
 };

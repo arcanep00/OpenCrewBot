@@ -4,6 +4,7 @@ import type { Bot, ChatMessage, Room, RouteNote } from "@/lib/shared/types";
 import { listBots, listMessages } from "./db";
 import { pickResponders } from "./jev";
 import { runTurn, stopEpochOf } from "./runtime";
+import { readSharedMemory, writeSharedMemory } from "./shared-memory";
 
 /** How many bot-to-bot @mention hops one message from the person can start. */
 const MAX_HANDOFF_DEPTH = 2;
@@ -46,20 +47,21 @@ function catchUp(history: ChatMessage[], bot: Bot, bots: Map<string, Bot>): stri
     .map((m) => `${authorName(m, bots)}: ${messageText(m) || "(no text)"}`);
 }
 
-function roomPrompt(room: Room, bot: Bot, members: Bot[], lines: string[], handoff: boolean): string {
+function roomPrompt(room: Room, bot: Bot, members: Bot[], lines: string[], handoff: boolean, sharedMemory: string): string {
   const roster = members
     .map((b) => `- ${b.name} (@${b.handle})${b.title ? `, ${b.title}` : ""}${b.id === bot.id ? " (you)" : ""}`)
     .join("\n");
   return [
     `[Group room "${room.name}"${room.topic ? `, topic: ${room.topic}` : ""}]`,
     `Members:\n${roster}`,
+    sharedMemory ? `\nRoom memory:\n${sharedMemory}` : "",
     `New in the room since your last message:\n${lines.join("\n") || "(nothing new)"}`,
     "---",
     handoff
       ? `A teammate @mentioned you. Do the part they asked of you, as ${bot.name}.`
       : `Reply to the latest message as ${bot.name}.`,
     "Add only your part; don't repeat what teammates already said. To hand something to a teammate, @mention their handle.",
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }
 
 async function decideResponders(room: Room, members: Bot[], text: string, history: ChatMessage[], bots: Map<string, Bot>) {
@@ -93,6 +95,7 @@ export async function runRoom(room: Room, userMessage: ChatMessage): Promise<voi
   const epoch = stopEpochOf(conversationId);
   const history = await listMessages(conversationId, 60);
   const { bots: responders, route } = await decideResponders(room, members, messageText(userMessage), history, bots);
+  const sharedMemory = await readSharedMemory(`room:${room.id}`);
 
   const queue: Array<{ bot: Bot; route: RouteNote; depth: number }> = responders.map((bot) => ({ bot, route, depth: 0 }));
   while (queue.length && stopEpochOf(conversationId) === epoch) {
@@ -101,7 +104,7 @@ export async function runRoom(room: Room, userMessage: ChatMessage): Promise<voi
     const reply = await runTurn({
       bot,
       conversationId,
-      content: roomPrompt(room, bot, members, catchUp(transcript, bot, bots), note.by === "handoff"),
+      content: roomPrompt(room, bot, members, catchUp(transcript, bot, bots), note.by === "handoff", sharedMemory),
       route: note,
     });
     if (!reply || reply.status !== "done" || depth >= MAX_HANDOFF_DEPTH) continue;

@@ -265,6 +265,7 @@ export function Sidebar() {
               onClose={() => setNewMenu(false)}
               items={[
                 { label: "New bot", onClick: () => setPanel({ kind: "new-bot" }), icon: <Mascot color="#3b82f6" size={18} /> },
+                { label: "Create agent from description", onClick: () => setPanel({ kind: "create-agent" }), icon: <Mascot color="#8b5cf6" size={18} /> },
                 { label: "New room", onClick: () => setPanel({ kind: "new-room" }), icon: <RoomAvatar colors={["#22c55e", "#f59e0b"]} size={18} /> },
               ]}
             />

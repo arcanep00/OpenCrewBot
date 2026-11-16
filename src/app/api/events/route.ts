@@ -1,5 +1,8 @@
 import { subscribe } from "@/lib/server/bus";
 import { boot } from "@/lib/server/service";
+import type { ServerEvent } from "@/lib/shared/types";
+
+const SSE_TYPES = new Set<string>(["message", "delta", "running", "bots-changed", "rooms-changed", "memory-changed", "browser-session", "connections-changed"]);
 
 // One SSE stream carries every live update: message snapshots, text deltas,
 // who's running, and roster changes. The browser folds it into its state.
@@ -17,7 +20,11 @@ export async function GET(request: Request) {
         }
       };
       send(": connected\n\n");
-      const unsubscribe = subscribe((event) => send(`data: ${JSON.stringify(event)}\n\n`));
+      const unsubscribe = subscribe((event) => {
+        if (SSE_TYPES.has(event.type)) {
+          send(`data: ${JSON.stringify(event as ServerEvent)}\n\n`);
+        }
+      });
       const heartbeat = setInterval(() => send(": ping\n\n"), 15_000);
       cleanup = () => {
         clearInterval(heartbeat);

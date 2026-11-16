@@ -170,5 +170,7 @@ function applyEvent(state: AppState, event: ServerEvent): AppState {
     case "rooms-changed":
       // The provider refetches the bootstrap payload for these.
       return state;
+    default:
+      return state;
   }
 }

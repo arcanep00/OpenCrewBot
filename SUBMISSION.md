@@ -71,7 +71,8 @@ All seven demonstrations are ready to run. The app seeds MeetUniversity-specific
 
 ## Notes on live vs mocked
 
-- All UI, task execution, memory, approvals, and scheduling work without any API keys.
+- All UI, task execution, memory, approvals, and scheduling work without any API keys (mock mode).
+- The screen recording was produced in mock mode — all workflows, approvals, memory, and task execution are real; model responses are scripted.
 - Integrations (Composio apps) require `COMPOSIO_API_KEY` and individual app connections.
-- LLM-based task decomposition and agent generation require at least one model key; both have rule-based mock fallbacks.
+- LLM-based task decomposition and agent generation require at least one model key; both have rule-based mock fallbacks that are demonstrated in the recording.
 - No fabricated outputs have been presented as live.

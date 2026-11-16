@@ -98,10 +98,15 @@ async function buildRuntime(bot: Bot): Promise<BotRuntime> {
   const builtIn = buildTools(bot);
   const connectors = await buildConnectorTools(bot, `bot-${bot.id}-${Date.now()}`);
   const capabilities = [...builtIn.capabilities, ...connectors.capabilities];
+  const { selectSkillsForTask, skillsPromptSection } = await import("./skills");
   const agent = new Agent({
     id: `bot-${bot.id}`,
     name: bot.name,
-    instructions: () => systemPrompt(holder.bot, capabilities, builtIn.instructions),
+    instructions: () => {
+      const skills = selectSkillsForTask(holder.bot.instructions, 2);
+      const activeSkills = skillsPromptSection(skills);
+      return systemPrompt(holder.bot, capabilities, builtIn.instructions, activeSkills);
+    },
     model: isMock() ? createMockModel(bot.name) : () => `nebius/${holder.bot.model}`,
     tools: { ...connectors.tools, ...builtIn.tools },
     memory,
@@ -413,6 +418,15 @@ export async function respondToApproval(conversationId: ConversationId, botId: s
   const session = state.sessions.get(key(conversationId, botId));
   if (!session) throw new Error("That request is no longer waiting. The bot may have restarted.");
   await session.respondToToolApproval({ toolCallId, decision: approve ? "approve" : "decline" });
+  // Write to audit log
+  import("./db").then(({ appendAuditEntry }) =>
+    appendAuditEntry({
+      action: approve ? "tool-approved" : "tool-denied",
+      botId,
+      conversationId,
+      detail: `Tool call ${toolCallId} ${approve ? "approved" : "denied"}.`,
+    }),
+  ).catch(() => {});
 }
 
 export async function answerQuestion(conversationId: ConversationId, botId: string, toolCallId: string, answer: string) {

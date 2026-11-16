@@ -10,7 +10,7 @@ import type { Bot, ChatMessage, ConversationId, Room } from "@/lib/shared/types"
 const g = globalThis as unknown as { __opencrewbotDb?: { url: string; schema?: number; client: Promise<Client> } };
 
 /** Bump when a table is added, so a hot-reloaded server re-runs the CREATE statements. */
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 async function open(): Promise<Client> {
   const db = createClient({ url: APP_DB_URL });
@@ -30,6 +30,49 @@ async function open(): Promise<Client> {
         id TEXT PRIMARY KEY,
         generation INTEGER NOT NULL DEFAULT 0,
         last_read_at TEXT
+      )`,
+      // ── Task Execution Engine (Module D) ──────────────────────────────
+      `CREATE TABLE IF NOT EXISTS task_plans (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        data TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`,
+      "CREATE INDEX IF NOT EXISTS task_plans_by_conversation ON task_plans (conversation_id, created_at)",
+      `CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT PRIMARY KEY,
+        plan_id TEXT NOT NULL,
+        data TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`,
+      "CREATE INDEX IF NOT EXISTS tasks_by_plan ON tasks (plan_id)",
+      // ── Scheduled Workflows (Module I) ────────────────────────────────
+      `CREATE TABLE IF NOT EXISTS workflows (
+        id TEXT PRIMARY KEY,
+        data TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS workflow_runs (
+        id TEXT PRIMARY KEY,
+        workflow_id TEXT NOT NULL,
+        data TEXT NOT NULL,
+        started_at TEXT NOT NULL
+      )`,
+      "CREATE INDEX IF NOT EXISTS workflow_runs_by_workflow ON workflow_runs (workflow_id, started_at)",
+      // ── Audit Log (Module G) ──────────────────────────────────────────
+      `CREATE TABLE IF NOT EXISTS audit_log (
+        id TEXT PRIMARY KEY,
+        action TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        data TEXT NOT NULL
+      )`,
+      "CREATE INDEX IF NOT EXISTS audit_by_time ON audit_log (created_at)",
+      // ── Shared Memory (Module E) ──────────────────────────────────────
+      `CREATE TABLE IF NOT EXISTS shared_memory (
+        id TEXT PRIMARY KEY,
+        scope TEXT NOT NULL,
+        data TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )`,
     ],
     "write",
@@ -193,4 +236,128 @@ export async function bumpGeneration(conversationId: ConversationId): Promise<nu
     args: [conversationId],
   });
   return conversationGeneration(conversationId);
+}
+
+import type { Task, TaskPlan, ScheduledWorkflow, WorkflowRun, AuditEntry, AuditAction } from "@/lib/shared/types";
+
+// ── task plans (Module D) ────────────────────────────────────────────────
+
+export async function saveTaskPlan(plan: TaskPlan): Promise<void> {
+  await (await db()).execute({
+    sql: `INSERT INTO task_plans (id, conversation_id, data, created_at) VALUES (?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
+    args: [plan.id, plan.conversationId, JSON.stringify(plan), plan.createdAt],
+  });
+}
+
+export async function getTaskPlan(id: string): Promise<TaskPlan | null> {
+  const rows = await (await db()).execute({ sql: "SELECT data FROM task_plans WHERE id = ?", args: [id] });
+  return rows.rows[0] ? (JSON.parse(String(rows.rows[0].data)) as TaskPlan) : null;
+}
+
+export async function listTaskPlans(conversationId?: ConversationId, limit = 50): Promise<TaskPlan[]> {
+  const rows = conversationId
+    ? await (await db()).execute({
+        sql: "SELECT data FROM task_plans WHERE conversation_id = ? ORDER BY created_at DESC LIMIT ?",
+        args: [conversationId, limit],
+      })
+    : await (await db()).execute({
+        sql: "SELECT data FROM task_plans ORDER BY created_at DESC LIMIT ?",
+        args: [limit],
+      });
+  return rows.rows.map((r) => JSON.parse(String(r.data)) as TaskPlan);
+}
+
+export async function saveTask(task: Task): Promise<void> {
+  await (await db()).execute({
+    sql: `INSERT INTO tasks (id, plan_id, data, created_at) VALUES (?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
+    args: [task.id, task.planId, JSON.stringify(task), task.createdAt],
+  });
+}
+
+export async function listTasksForPlan(planId: string): Promise<Task[]> {
+  const rows = await (await db()).execute({ sql: "SELECT data FROM tasks WHERE plan_id = ?", args: [planId] });
+  return rows.rows.map((r) => JSON.parse(String(r.data)) as Task);
+}
+
+// ── workflows (Module I) ─────────────────────────────────────────────────
+
+export async function saveWorkflow(wf: ScheduledWorkflow): Promise<void> {
+  await (await db()).execute({
+    sql: `INSERT INTO workflows (id, data, created_at) VALUES (?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
+    args: [wf.id, JSON.stringify(wf), wf.createdAt],
+  });
+}
+
+export async function listWorkflows(): Promise<ScheduledWorkflow[]> {
+  const rows = await (await db()).execute("SELECT data FROM workflows ORDER BY created_at ASC");
+  return rows.rows.map((r) => JSON.parse(String(r.data)) as ScheduledWorkflow);
+}
+
+export async function getWorkflow(id: string): Promise<ScheduledWorkflow | null> {
+  const rows = await (await db()).execute({ sql: "SELECT data FROM workflows WHERE id = ?", args: [id] });
+  return rows.rows[0] ? (JSON.parse(String(rows.rows[0].data)) as ScheduledWorkflow) : null;
+}
+
+export async function deleteWorkflowRow(id: string): Promise<void> {
+  await (await db()).execute({ sql: "DELETE FROM workflows WHERE id = ?", args: [id] });
+}
+
+export async function saveWorkflowRun(run: WorkflowRun): Promise<void> {
+  await (await db()).execute({
+    sql: `INSERT INTO workflow_runs (id, workflow_id, data, started_at) VALUES (?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
+    args: [run.id, run.workflowId, JSON.stringify(run), run.startedAt],
+  });
+}
+
+export async function listWorkflowRuns(workflowId: string, limit = 20): Promise<WorkflowRun[]> {
+  const rows = await (await db()).execute({
+    sql: "SELECT data FROM workflow_runs WHERE workflow_id = ? ORDER BY started_at DESC LIMIT ?",
+    args: [workflowId, limit],
+  });
+  return rows.rows.map((r) => JSON.parse(String(r.data)) as WorkflowRun);
+}
+
+// ── audit log (Module G) ─────────────────────────────────────────────────
+
+export async function appendAuditEntry(entry: Omit<AuditEntry, "id" | "createdAt">): Promise<AuditEntry> {
+  const full: AuditEntry = { ...entry, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+  await (await db()).execute({
+    sql: "INSERT INTO audit_log (id, action, created_at, data) VALUES (?, ?, ?, ?)",
+    args: [full.id, full.action, full.createdAt, JSON.stringify(full)],
+  });
+  return full;
+}
+
+export async function listAuditLog(limit = 100): Promise<AuditEntry[]> {
+  const rows = await (await db()).execute({
+    sql: "SELECT data FROM audit_log ORDER BY created_at DESC LIMIT ?",
+    args: [limit],
+  });
+  return rows.rows.map((r) => JSON.parse(String(r.data)) as AuditEntry);
+}
+
+// ── shared memory (Module E) ─────────────────────────────────────────────
+
+/** scope: `room:<roomId>` or `project:<name>` */
+export async function getSharedMemory(scope: string): Promise<string> {
+  const rows = await (await db()).execute({ sql: "SELECT data FROM shared_memory WHERE id = ?", args: [scope] });
+  return rows.rows[0] ? (JSON.parse(String(rows.rows[0].data)) as { content: string }).content : "";
+}
+
+export async function setSharedMemory(scope: string, content: string): Promise<void> {
+  const now = new Date().toISOString();
+  await (await db()).execute({
+    sql: `INSERT INTO shared_memory (id, scope, data, updated_at) VALUES (?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
+    args: [scope, scope, JSON.stringify({ content }), now],
+  });
+}
+
+export async function listSharedMemoryScopes(): Promise<string[]> {
+  const rows = await (await db()).execute("SELECT id FROM shared_memory ORDER BY updated_at DESC");
+  return rows.rows.map((r) => String(r.id));
 }

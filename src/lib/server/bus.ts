@@ -1,12 +1,20 @@
 // In-process fan-out of server events to every open SSE connection.
-import type { ServerEvent } from "@/lib/shared/types";
+import type { ServerEvent, TaskPlan, Task, WorkflowRun } from "@/lib/shared/types";
 
-type Listener = (event: ServerEvent) => void;
+// Extended internal events (not all sent over SSE, some are internal signals)
+export type InternalEvent =
+  | ServerEvent
+  | { type: "task-plan-created"; plan: TaskPlan }
+  | { type: "task-updated"; planId: string; task: Task; planStatus: string }
+  | { type: "workflow-run-started"; run: WorkflowRun }
+  | { type: "workflow-run-completed"; run: WorkflowRun };
+
+type Listener = (event: InternalEvent) => void;
 
 const g = globalThis as unknown as { __opencrewbotBus?: Set<Listener> };
 const listeners = (g.__opencrewbotBus ??= new Set());
 
-export function publish(event: ServerEvent): void {
+export function publish(event: InternalEvent): void {
   for (const listener of listeners) {
     try {
       listener(event);

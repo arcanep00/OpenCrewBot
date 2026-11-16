@@ -1,7 +1,5 @@
 // Types shared by the server and the browser. Everything here is plain JSON.
 
-export type ApprovalMode = "ask" | "full";
-
 export interface BotTools {
   /** Tavily search, extract and crawl. */
   webSearch: boolean;
@@ -171,3 +169,108 @@ export interface ConnectionOption {
   kind: "composio" | "mcp";
   logo?: string;
 }
+
+// ── Task Execution Engine (Module D) ────────────────────────────────────
+
+export type TaskStatus = "pending" | "running" | "done" | "error" | "cancelled" | "awaiting-approval";
+
+export interface Task {
+  id: string;
+  planId: string;
+  title: string;
+  description: string;
+  assignedBotId: string | null;
+  dependsOn: string[];
+  status: TaskStatus;
+  startedAt: string | null;
+  completedAt: string | null;
+  output: string | null;
+  error: string | null;
+  requiresApproval: boolean;
+  retryCount: number;
+  createdAt: string;
+}
+
+export interface TaskPlan {
+  id: string;
+  conversationId: ConversationId;
+  instruction: string;
+  status: "running" | "done" | "error" | "cancelled";
+  tasks: Task[];
+  createdAt: string;
+  completedAt: string | null;
+}
+
+// ── Scheduled Workflows (Module I) ──────────────────────────────────────
+
+export type ScheduleFrequency = "manual" | "hourly" | "daily" | "weekly";
+
+export interface ScheduledWorkflow {
+  id: string;
+  name: string;
+  description: string;
+  roomId: string | null;
+  botId: string | null;
+  instruction: string;
+  frequency: ScheduleFrequency;
+  cronExpression: string | null;
+  enabled: boolean;
+  lastRunAt: string | null;
+  nextRunAt: string | null;
+  createdAt: string;
+}
+
+export interface WorkflowRun {
+  id: string;
+  workflowId: string;
+  startedAt: string;
+  completedAt: string | null;
+  status: "running" | "done" | "error";
+  output: string | null;
+  error: string | null;
+}
+
+// ── Audit Log (Module G) ─────────────────────────────────────────────────
+
+export type AuditAction = "tool-approved" | "tool-denied" | "agent-created" | "agent-deleted" | "workflow-triggered" | "memory-edited";
+
+export interface AuditEntry {
+  id: string;
+  action: AuditAction;
+  botId: string | null;
+  conversationId: string | null;
+  detail: string;
+  createdAt: string;
+}
+
+// ── Skills (Module F) ─────────────────────────────────────────────────────
+
+export type SkillId =
+  | "market-research"
+  | "competitor-analysis"
+  | "financial-modelling"
+  | "presentation-creation"
+  | "email-drafting"
+  | "code-review"
+  | "data-analysis"
+  | "lead-generation";
+
+export interface Skill {
+  id: SkillId;
+  name: string;
+  description: string;
+  instructions: string;
+  requiredTools: (keyof BotTools)[];
+}
+
+// ── Extended ServerEvents ────────────────────────────────────────────────
+
+export type ServerEvent2 =
+  | { type: "task-plan"; plan: TaskPlan }
+  | { type: "task-update"; planId: string; task: Task }
+  | { type: "workflow-run"; run: WorkflowRun };
+
+// ── Extended ApprovalMode ─────────────────────────────────────────────────
+
+/** ask = Ask First, controlled = Controlled Access, full = Full Access */
+export type ApprovalMode = "ask" | "controlled" | "full";

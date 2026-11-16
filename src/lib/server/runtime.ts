@@ -12,7 +12,7 @@ import type { Bot, ChatMessage, ConversationId, Part, RouteNote } from "@/lib/sh
 import { MASTRA_DB_URL, OWNER_ID, isMock } from "./config";
 import { conversationGeneration, getBot, saveMessage } from "./db";
 import { publish } from "./bus";
-import { costUsd, findModel } from "./models";
+import { costUsd, findModel, mastraModel } from "./models";
 import { createMockModel } from "./mock-model";
 import { announceLiveView, createSession, releaseSession } from "./browserbase";
 import { buildConnectorTools, connectionsVersion } from "./connectors";
@@ -102,7 +102,7 @@ async function buildRuntime(bot: Bot): Promise<BotRuntime> {
     id: `bot-${bot.id}`,
     name: bot.name,
     instructions: () => systemPrompt(holder.bot, capabilities, builtIn.instructions),
-    model: isMock() ? createMockModel(bot.name) : () => `nebius/${holder.bot.model}`,
+    model: isMock() ? createMockModel(bot.name) : () => mastraModel(holder.bot.model),
     tools: { ...connectors.tools, ...builtIn.tools },
     memory,
   });
@@ -168,8 +168,7 @@ async function sessionFor(bot: Bot, conversationId: ConversationId): Promise<Ses
   await session.permissions.setForCategory({ category: "read", policy: "allow" });
   await session.permissions.setForCategory({ category: "edit", policy: "allow" });
   await session.permissions.setForCategory({ category: "other", policy: "allow" });
-  // Connected apps and MCP servers act on real accounts: ask first unless the bot has full access.
-  await session.permissions.setForCategory({ category: "mcp", policy: bot.approval === "full" ? "allow" : "ask" });
+  await session.permissions.setForCategory({ category: "mcp", policy: bot.approval === "full" || bot.approval === "controlled" ? "allow" : "ask" });
   await session.permissions.setForCategory({ category: "execute", policy: bot.approval === "full" ? "allow" : "ask" });
   state.sessions.set(k, session);
   return session;

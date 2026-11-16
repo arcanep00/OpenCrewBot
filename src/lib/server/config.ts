@@ -24,15 +24,25 @@ export const keys = {
   jev: () => Boolean(process.env.TYPESAFE_API_KEY),
   browserbase: () => Boolean(process.env.BROWSERBASE_API_KEY),
   composio: () => Boolean(process.env.COMPOSIO_API_KEY),
+  openai: () => Boolean(process.env.OPENAI_API_KEY),
+  anthropic: () => Boolean(process.env.ANTHROPIC_API_KEY),
 };
 
 /** Without a Nebius key, bots run on a scripted local model so the UI still works. */
-export const isMock = () => !keys.nebius();
+export const isMock = () => !keys.nebius() && !keys.openai() && !keys.anthropic();
 
 export function appStatus(): AppStatus {
   return {
     mock: isMock(),
-    keys: { nebius: keys.nebius(), tavily: keys.tavily(), jev: keys.jev(), browserbase: keys.browserbase(), composio: keys.composio() },
+    keys: {
+      nebius: keys.nebius(),
+      tavily: keys.tavily(),
+      jev: keys.jev(),
+      browserbase: keys.browserbase(),
+      composio: keys.composio(),
+      openai: keys.openai(),
+      anthropic: keys.anthropic(),
+    },
     dataDir: DATA_DIR,
   };
 }

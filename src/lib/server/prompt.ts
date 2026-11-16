@@ -1,5 +1,6 @@
 import type { Bot } from "@/lib/shared/types";
 import { memoryForPrompt } from "./memory-files";
+import { selectSkillsForTask, skillsPromptSection } from "./skills";
 
 export function systemPrompt(bot: Bot, capabilities: string[], toolInstructions: string[]): string {
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
@@ -38,6 +39,10 @@ export function systemPrompt(bot: Bot, capabilities: string[], toolInstructions:
       ].join("\n"),
     );
   }
+
+  const skills = selectSkillsForTask(`${bot.title} ${bot.instructions} ${bot.description}`, 2);
+  const skillSection = skillsPromptSection(skills);
+  if (skillSection) sections.push(skillSection);
 
   sections.push(...toolInstructions);
   return sections.join("\n\n");

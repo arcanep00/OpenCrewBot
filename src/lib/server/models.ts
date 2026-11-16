@@ -5,6 +5,23 @@ import type { ModelOption } from "@/lib/shared/types";
 
 export const DEFAULT_MODEL = "MiniMaxAI/MiniMax-M3";
 
+export type ModelProvider = "nebius" | "openai" | "anthropic";
+
+/** Returns which provider to use for a given model id. */
+export function providerForModel(modelId: string): ModelProvider {
+  if (modelId.startsWith("gpt-") || modelId.startsWith("o1") || modelId.startsWith("o3") || modelId.startsWith("o4") || modelId === "openai/gpt-oss-120b") return "openai";
+  if (modelId.startsWith("claude-")) return "anthropic";
+  return "nebius";
+}
+
+/** Mastra model string for a given model id — includes provider prefix. */
+export function mastraModel(modelId: string): string {
+  const provider = providerForModel(modelId);
+  if (provider === "openai") return `openai/${modelId}`;
+  if (provider === "anthropic") return `anthropic/${modelId}`;
+  return `nebius/${modelId}`;
+}
+
 type Row = [id: string, context: number, tools: boolean, reasoning: boolean, vision: boolean, inPerM: number, outPerM: number];
 
 const STATIC: Row[] = [
@@ -28,16 +45,33 @@ const STATIC: Row[] = [
   ["google/gemma-3-27b-it", 110000, true, false, true, 0.1, 0.3],
 ];
 
+const OPENAI_MODELS: Row[] = [
+  ["gpt-4o", 128000, true, false, true, 2.5, 10],
+  ["gpt-4o-mini", 128000, true, false, true, 0.15, 0.6],
+  ["o3-mini", 200000, true, true, false, 1.1, 4.4],
+  ["o4-mini", 200000, true, true, false, 1.1, 4.4],
+];
+
+const ANTHROPIC_MODELS: Row[] = [
+  ["claude-sonnet-4-5", 200000, true, false, true, 3, 15],
+  ["claude-haiku-3-5", 200000, true, false, true, 0.8, 4],
+  ["claude-opus-4-5", 200000, true, false, true, 15, 75],
+];
+
 function label(id: string): string {
   const name = id.split("/").pop() ?? id;
   return name.replace(/[-_]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function fromRow([id, context, tools, reasoning, vision, inPerM, outPerM]: Row, live = false): ModelOption {
-  return { id, label: label(id), provider: id.split("/")[0], context, tools, reasoning, vision, inputPerM: inPerM, outputPerM: outPerM, live };
+  return { id, label: label(id), provider: id.split("/")[0], context, tools, reasoning, vision, inputPerM: inPerM, outputPerM: outPerM, live, providerKey: providerForModel(id) };
 }
 
-const staticOptions = STATIC.map((r) => fromRow(r));
+const staticOptions = [
+  ...STATIC.map((r) => fromRow(r)),
+  ...(process.env.OPENAI_API_KEY ? OPENAI_MODELS.map((r) => fromRow(r)) : OPENAI_MODELS.map((r) => fromRow(r))),
+  ...ANTHROPIC_MODELS.map((r) => fromRow(r)),
+];
 
 interface LiveModel {
   id: string;

@@ -42,8 +42,22 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
             name="Nebius Token Factory"
             envVar="NEBIUS_API_KEY"
             ok={Boolean(status?.keys.nebius)}
-            what="The open-source models every bot runs on. Without it, bots use a scripted mock model."
+            what="Open-source models. Without it, bots use a scripted mock model."
             href="https://tokenfactory.nebius.com"
+          />
+          <KeyRow
+            name="OpenAI"
+            envVar="OPENAI_API_KEY"
+            ok={Boolean(status?.keys.openai)}
+            what="GPT-4o, o3-mini and other OpenAI models. Required to use them."
+            href="https://platform.openai.com/api-keys"
+          />
+          <KeyRow
+            name="Anthropic"
+            envVar="ANTHROPIC_API_KEY"
+            ok={Boolean(status?.keys.anthropic)}
+            what="Claude Sonnet, Haiku and Opus. Required to use them."
+            href="https://console.anthropic.com/settings/keys"
           />
           <KeyRow name="Tavily" envVar="TAVILY_API_KEY" ok={Boolean(status?.keys.tavily)} what="Web search, page reading and site crawls." href="https://app.tavily.com" />
           <KeyRow
@@ -67,6 +81,30 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
             what="Picks who answers in Auto rooms. Without it, the room's lead answers."
             href="https://typesafe.ai"
           />
+        </ul>
+      </section>
+      <section className="mt-7">
+        <h3 className="text-[12.5px] font-medium text-mute">Integrations status</h3>
+        <p className="mt-1 text-[13px] leading-relaxed text-mute">
+          Connect apps in the Connections panel. This shows which are live vs not yet connected.
+        </p>
+        <ul className="mt-3 divide-y divide-line rounded-2xl bg-raised">
+          {[
+            { name: "GitHub", what: "Inspect repos, open issues, review PRs. Connect via Composio.", key: "composio" },
+            { name: "Gmail", what: "Draft and send emails. Connect via Composio.", key: "composio" },
+            { name: "Slack", what: "Post messages, read channels. Connect via Composio.", key: "composio" },
+            { name: "Notion", what: "Read and write pages. Connect via Composio.", key: "composio" },
+          ].map((item) => (
+            <li key={item.name} className="px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[14px] font-medium">{item.name}</span>
+                <span className={clsx("text-[12px]", status?.keys.composio ? "text-ok" : "text-faint")}>
+                  {status?.keys.composio ? "Available via Composio" : "Needs COMPOSIO_API_KEY"}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[12.5px] text-mute">{item.what}</p>
+            </li>
+          ))}
         </ul>
       </section>
       <section className="mt-7">

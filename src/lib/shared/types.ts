@@ -120,11 +120,12 @@ export interface ModelOption {
   inputPerM: number | null;
   outputPerM: number | null;
   live: boolean;
+  providerKey?: "nebius" | "openai" | "anthropic";
 }
 
 export interface AppStatus {
   mock: boolean;
-  keys: { nebius: boolean; tavily: boolean; jev: boolean; browserbase: boolean; composio: boolean };
+  keys: { nebius: boolean; tavily: boolean; jev: boolean; browserbase: boolean; composio: boolean; openai: boolean; anthropic: boolean };
   dataDir: string;
 }
 

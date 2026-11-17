@@ -3,12 +3,12 @@
 // with NEBIUS_API_KEY set, the live Token Factory list decides what's available.
 import type { ModelOption } from "@/lib/shared/types";
 
-export const DEFAULT_MODEL = "MiniMaxAI/MiniMax-M3";
+export const DEFAULT_MODEL = process.env.OPENAI_API_KEY ? (process.env.LM_STUDIO_MODEL ?? "local/nemotron-3-nano-4b") : "MiniMaxAI/MiniMax-M3";
 
 export type ModelProvider = "nebius" | "openai" | "anthropic";
 
 export function providerForModel(modelId: string): ModelProvider {
-  if (modelId.startsWith("gpt-") || modelId.startsWith("o1") || modelId.startsWith("o3") || modelId.startsWith("o4") || modelId === "openai/gpt-oss-120b" || modelId.startsWith("local/")) return "openai";
+  if (modelId.startsWith("gpt-") || modelId.startsWith("o1") || modelId.startsWith("o3") || modelId.startsWith("o4") || modelId === "openai/gpt-oss-120b" || modelId.startsWith("local/") || modelId.startsWith("nvidia/")) return "openai";
   if (modelId.startsWith("claude-")) return "anthropic";
   return "nebius";
 }

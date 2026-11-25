@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import type { AppStatus } from "@/lib/shared/types";
 
 // The data folder is chosen at runtime, so keep the bundler from tracing it.
-export const DATA_DIR = resolve(/*turbopackIgnore: true*/ process.env.OPENCREWBOT_DATA_DIR || "./data");
+export const DATA_DIR = resolve(/*turbopackIgnore: true*/ process.env.OPENCREWBOT_DATA_DIR || "/tmp/data");
 export const WORKSPACES_DIR = resolve(DATA_DIR, "workspaces");
 mkdirSync(WORKSPACES_DIR, { recursive: true });
 
